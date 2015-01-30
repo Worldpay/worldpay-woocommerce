@@ -19,8 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) {
-	ini_set('display_errors', 1);
-	error_reporting(E_ALL);
 	require_once('libs/worldpay-lib-php-1.2/lib/worldpay.php');
 	require_once('Persistence/token.php');
 	require_once('Persistence/card-details.php');
