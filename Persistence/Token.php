@@ -2,17 +2,17 @@
 
 class WorldPay_Token
 {
-    public static function GetByUser($user)
-    {
-        if($user == null){
-            return null;
-        }
+	public static function get_by_user($user)
+	{
+		if($user == null){
+			return null;
+		}
 
-        $tokens = get_user_meta($user->ID, 'worldpay_token');
-        if(!is_array($tokens) || count($tokens) == 0){
-            return null;
-        }
+		$tokens = get_user_meta($user->ID, 'worldpay_token');
+		if(!is_array($tokens) || count($tokens) == 0){
+			return null;
+		}
 
-        return $tokens[0];
-    }
+		return $tokens[0];
+	}
 } 

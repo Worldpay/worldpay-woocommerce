@@ -7,11 +7,11 @@
  */
 
 class WorldPay_Response_States {
-    const SUCCESS = 'SUCCESS';
-    const FAILED = 'FAILED';
-    const REFUNDED = 'REFUNDED';
-    const SETTLED = 'SETTLED';
+	const SUCCESS = 'SUCCESS';
+	const FAILED = 'FAILED';
+	const REFUNDED = 'REFUNDED';
+	const SETTLED = 'SETTLED';
     const CHARGED_BACK = 'CHARGED_BACK';
     const INFORMATION_REQUESTED = 'INFORMATION_REQUESTED';
-    const INFORMATION_SUPPLIED = 'INFORMATION_SUPPLIED';
+	const INFORMATION_SUPPLIED = 'INFORMATION_SUPPLIED';
 }
