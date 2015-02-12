@@ -1,18 +1,18 @@
 <?php
 /**
- * Plugin Name: WooCommerce-WorldPay
+ * Plugin Name: Worldpay Online Payments
  * Plugin URI:
  * Description: A plugin for integrating the worldpay payment gateway with Woo Commerce. Supports GBP, EUR and USD.
  * Version: 1.0
- * Author: WorldPay
+ * Author: Worldpay
  * Author URI:
  * Requires at least: 4.0
  * Tested up to: 4.1
  *
  *
- * @package WooCommerce-WorldPay
+ * @package WooCommerce-Worldpay
  * @category Core
- * @author WorldPay
+ * @author Worldpay
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -28,21 +28,21 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	require_once('Constants/worldpay-response-states.php');
 
 	function init_woocommerce_worldpay_payment_gateway() {
-		class WC_Gateway_WorldPay extends WC_Payment_Gateway {
+		class WC_Gateway_Worldpay extends WC_Payment_Gateway {
 			protected $client_key;
 			protected $store_tokens;
 			protected $is_test;
 			protected $notifications_enabled;
-			protected $server_key;
+			protected $service_key;
 			private $worldpay_client;
 			protected $supported_currencies = array('GBP','EUR','USD');
 
 			public function __construct()
 			{
-				$this->id = "WC_Gateway_WorldPay";
+				$this->id = "WC_Gateway_Worldpay";
 				$this->has_fields = true;
-				$this->method_title = "WorldPay";
-				$this->method_description = "The WorldPay payment gateway";
+				$this->method_title = "Worldpay";
+				$this->method_description = "The Worldpay payment gateway";
 
 				$this->supports = array(
 					'products',
@@ -51,10 +51,13 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 				$this->init_form_fields();
 				$this->init_settings();
-				if( ! in_array(get_woocommerce_currency(), $this->supported_currencies) ) {
+				$this->init_keys();
+				if( ! in_array(get_woocommerce_currency(), $this->supported_currencies)
+					|| empty($this->client_key)
+					|| empty($this->service_key)
+				) {
 					$this->enabled = false;
 				}
-				$this->init_keys();
 				$this->title = $this->get_option( 'title' );
 				$this->store_tokens = $this->get_option( 'store_tokens' ) != "no";
 				$this->notifications_enabled = $this->get_option( 'notifications_enabled' ) != "no";
@@ -74,19 +77,19 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				$this->client_key = $this->is_test
 					? $this->get_option('test_client_key')
 					: $this->get_option('client_key');
-				$this->server_key = $this->is_test
-					? $this->get_option('test_server_key')
-					: $this->get_option('server_key');
+				$this->service_key = $this->is_test
+					? $this->get_option('test_service_key')
+					: $this->get_option('service_key');
 			}
 
 			public function init_form_fields()
 			{
-				$this->form_fields = WorldPay_AdminForm::get_admin_form_fields();
+				$this->form_fields = Worldpay_AdminForm::get_admin_form_fields();
 			}
 
 			public function payment_fields()
 			{
-				WorldPay_PaymentForm::render_payment_form(
+				Worldpay_PaymentForm::render_payment_form(
 					$this->store_tokens,
 					$this->get_stored_card_details()
 				);
@@ -99,7 +102,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				}
 
 				$currentUser = wp_get_current_user();
-				return WorldPay_CardDetails::get_by_user($currentUser, $this->get_worldpay_client());
+				return Worldpay_CardDetails::get_by_user($currentUser, $this->get_worldpay_client());
 			}
 
 			private function get_stored_token()
@@ -109,7 +112,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				}
 
 				$current_user = wp_get_current_user();
-				return WorldPay_Token::get_by_user($current_user);
+				return Worldpay_Token::get_by_user($current_user);
 			}
 
 			public function process_payment( $order_id )
@@ -147,11 +150,11 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				}
 				catch ( Exception $e )
 				{
-					wc_add_notice( __('Payment error:', 'woothemes') . " Payment failed.", 'error' );
+					wc_add_notice( __('Payment error:', 'woothemes') . ' ' . $e->getMessage(), 'error' );
 					return;
 				}
 
-				if ( $response['paymentStatus'] === WorldPay_Response_States::SUCCESS ) {
+				if ( $response['paymentStatus'] === Worldpay_Response_States::SUCCESS ) {
 					$order->payment_complete($response['orderCode']);
 					$order->reduce_order_stock();
 					$woocommerce->cart->empty_cart();
@@ -166,7 +169,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 						'redirect' => $this->get_return_url( $order )
 					);
 				} else {
-					wc_add_notice( __('Payment error:', 'woothemes') . " Payment failed.", 'error' );
+					wc_add_notice( __('Payment error:', 'woothemes') . " " . $response['paymentStatusReason'], 'error' );
 					return;
 				}
 			}
@@ -178,7 +181,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				{
 					return new WP_Error(
 						'partial-refund-error',
-						'The WorldPay payment gateway does not support partial refunds.'
+						'The Worldpay gateway plugin does not currently support partial refunds.'
 					);
 				}
 
@@ -199,7 +202,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					return;
 				}
 				try{
-					$webhookRequest = WorldPay_WebhookRequest::from_request();
+					$webhookRequest = Worldpay_WebhookRequest::from_request();
 					if( null == $webhookRequest )	{
 						return;
 					}
@@ -218,37 +221,37 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					}
 					switch ( $webhookRequest->paymentStatus )
 					{
-						case WorldPay_Response_States::SUCCESS:
+						case Worldpay_Response_States::SUCCESS:
 							$order->payment_complete();
 							$order->add_order_note( __( 'Payment successful' ));
 							break;
-						case WorldPay_Response_States::SETTLED:
+						case Worldpay_Response_States::SETTLED:
 							$order->add_order_note( __( 'Payment settled' ));
 							break;
-						case WorldPay_Response_States::FAILED:
+						case Worldpay_Response_States::FAILED:
 							$order->update_status('failed');
 							$order->add_order_note( __( 'Payment failed' ));
 							break;
-						case WorldPay_Response_States::REFUNDED:
+						case Worldpay_Response_States::REFUNDED:
 							if ( 0 == $order->get_total_refunded() )
 							{
 								$order->add_order_note( __( 'Refunded' ));
 								$args = array(
 									'amount'	 => $order->get_total(),
-									'reason'	 => "Order refunded in WorldPay",
+									'reason'	 => "Order refunded in Worldpay",
 									'order_id'   => $order->id,
 									'line_items' => array()
 								);
 								wc_create_refund($args);
 							}
 							break;
-						case WorldPay_Response_States::INFORMATION_REQUESTED:
+						case Worldpay_Response_States::INFORMATION_REQUESTED:
 							$order->add_order_note( __( 'Payment disputed - information requested.' ));
 							break;
-						case WorldPay_Response_States::INFORMATION_SUPPLIED:
+						case Worldpay_Response_States::INFORMATION_SUPPLIED:
 							$order->add_order_note( __( 'Information received.' ));
 							break;
-						case WorldPay_Response_States::CHARGED_BACK:
+						case Worldpay_Response_States::CHARGED_BACK:
 							$order->add_order_note( __( 'Order charged back.' ));
 							break;
 					}
@@ -270,7 +273,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					'meta_query' => array(
 						array(
 							'key' => '_payment_method',
-							'value' => 'WC_Gateway_WorldPay'
+							'value' => 'WC_Gateway_Worldpay'
 						),
 						array(
 							'key' => '_transaction_id',
@@ -293,12 +296,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					'worldpay_init', plugin_dir_url(__FILE__) . '/scripts/init_worldpay.js',
 					array('jquery', 'wc-checkout', 'worldpay_script')
 				);
-				wp_localize_script('worldpay_init', 'WorldPayConfig', array('ClientKey' => $this->client_key));
+				wp_localize_script('worldpay_init', 'WorldpayConfig', array('ClientKey' => $this->client_key));
 			}
 
 			protected function get_worldpay_client() {
 				if ( ! isset($this->worldpay_client) ) {
-					$this->worldpay_client = new Worldpay( $this->server_key );
+					$this->worldpay_client = new Worldpay( $this->service_key );
 				}
 				return $this->worldpay_client;
 			}
@@ -308,7 +311,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	add_action( 'plugins_loaded', 'init_woocommerce_worldpay_payment_gateway' );
 
 	function woocommerce_add_worldpay_payment_gateway( $methods ) {
-		$methods[] = 'WC_Gateway_WorldPay';
+		$methods[] = 'WC_Gateway_Worldpay';
 		return $methods;
 	}
 	add_filter( 'woocommerce_payment_gateways', 'woocommerce_add_worldpay_payment_gateway' );

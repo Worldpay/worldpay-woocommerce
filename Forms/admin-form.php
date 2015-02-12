@@ -1,6 +1,6 @@
 <?php
 
-class WorldPay_AdminForm
+class Worldpay_AdminForm
 {
 	public static function get_admin_form_fields()
 	{
@@ -8,7 +8,7 @@ class WorldPay_AdminForm
 			'enabled' => array(
 				'title' => __( 'Enable/Disable', 'woocommerce' ),
 				'type' => 'checkbox',
-				'label' => __( 'Enable WorldPay', 'woocommerce' ),
+				'label' => __( 'Enable Worldpay', 'woocommerce' ),
 				'default' => 'yes'
 			),
 			'is_test' => array(
@@ -21,13 +21,13 @@ class WorldPay_AdminForm
 				'title' => __( 'Title', 'woocommerce' ),
 				'type' => 'text',
 				'description' => __( 'This controls the title which the user sees during checkout.', 'woocommerce' ),
-				'default' => __( 'WorldPay', 'woocommerce' ),
+				'default' => __( 'Worldpay', 'woocommerce' ),
 				'desc_tip'	  => true,
 			),
 			'description' => array(
 				'title' => __( 'Customer Message', 'woocommerce' ),
 				'type' => 'textarea',
-				'default' => 'Pay with WorldPay'
+				'default' => 'Pay with Worldpay'
 			),
 			'store_tokens' => array(
 				'title' => __( 'Card-on-file Payment', 'woocommerce' ),
@@ -39,25 +39,26 @@ class WorldPay_AdminForm
 				'title' => __( 'Webhooks', 'woocommerce' ),
 				'type' => 'checkbox',
 				'label' => __( 'Enable webhooks', 'woocommerce' ),
-				'default' => 'no'
+				'default' => 'no',
+                'description' => "Webhook URL: " . site_url() . "/?s=word&wc-api=WC_Gateway_Worldpay"
 			),
+            'service_key' => array(
+                'title' => __( 'Service Key', 'woocommerce' ),
+                'type' => 'text',
+                'default' => ''
+            ),
 			'client_key' => array(
 				'title' => __( 'Client Key', 'woocommerce' ),
 				'type' => 'text',
 				'default' => ''
 			),
-			'server_key' => array(
-				'title' => __( 'Server Key', 'woocommerce' ),
-				'type' => 'text',
-				'default' => ''
-			),
+            'test_service_key' => array(
+                'title' => __( 'Test Service Key', 'woocommerce' ),
+                'type' => 'text',
+                'default' => ''
+            ),
 			'test_client_key' => array(
 				'title' => __( 'Test Client Key', 'woocommerce' ),
-				'type' => 'text',
-				'default' => ''
-			),
-			'test_server_key' => array(
-				'title' => __( 'Test Server Key', 'woocommerce' ),
 				'type' => 'text',
 				'default' => ''
 			)

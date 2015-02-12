@@ -1,6 +1,6 @@
 <?php
 
-class WorldPay_CardDetails
+class Worldpay_CardDetails
 {
 	public $token;
 	public $masked_card_number;
@@ -16,14 +16,14 @@ class WorldPay_CardDetails
 			return null;
 		}
 
-		$token = WorldPay_Token::get_by_user($user);
+		$token = Worldpay_Token::get_by_user($user);
 
 		if ( $token == null ) {
 			return null;
 		}
 
 		try{
-			return new WorldPay_CardDetails($worldpay_client->getStoredCardDetails($token), $token);
+			return new Worldpay_CardDetails($worldpay_client->getStoredCardDetails($token), $token);
 		}
 		catch ( Exception $e )
 		{
