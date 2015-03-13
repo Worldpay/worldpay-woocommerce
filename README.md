@@ -1,1 +1,1 @@
-# clearwater-woocommerce
+# worldpay-woocommerce
