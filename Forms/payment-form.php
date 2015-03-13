@@ -1,6 +1,6 @@
 <?php
 
-class WorldPay_PaymentForm
+class Worldpay_PaymentForm
 {
 	public static function render_payment_form( $storeTokens, $cardDetails ) {
 		self::payment_errors_section();
@@ -22,7 +22,7 @@ class WorldPay_PaymentForm
 		<?php
 	}
 
-	public static function existing_details_fields( WorldPay_CardDetails $card_details ) {
+	public static function existing_details_fields( Worldpay_CardDetails $card_details ) {
 		?>
 			<p class="form-row form-row-first">
 				<label for="worldpay_saved_card">
@@ -120,7 +120,7 @@ class WorldPay_PaymentForm
 	public static function no_existing_details_script() {
 		?>
 			<script type="text/javascript">
-				WorldPayCheckout.setupNewCardForm();
+				WorldpayCheckout.setupNewCardForm();
 			</script>
 		<?php
 	}
@@ -140,13 +140,13 @@ class WorldPay_PaymentForm
 								newCardFormSections.toggle();
 								if($(checkbox).attr('checked'))
 								{
-									WorldPayCheckout.setupReusableCardForm();
+									WorldpayCheckout.setupReusableCardForm();
 								} else {
-									WorldPayCheckout.setupNewCardForm();
+									WorldpayCheckout.setupNewCardForm();
 								}
 							});
 						}
-						WorldPayCheckout.setupReusableCardForm();
+						WorldpayCheckout.setupReusableCardForm();
 					});
 				});
 			</script>

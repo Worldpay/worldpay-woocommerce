@@ -1,6 +1,6 @@
 <?php
 
-class WorldPay_Token
+class Worldpay_Token
 {
 	public static function get_by_user($user)
 	{

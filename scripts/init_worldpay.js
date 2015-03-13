@@ -1,15 +1,15 @@
-WorldPayCheckout = function( $ ) {
+WorldpayCheckout = function( $ ) {
     var submitFunction;
     var form;
     var reattachHandlers = function() {
-        $(form).off( "checkout_place_order_WC_Gateway_WorldPay");
-        $(form).on( "checkout_place_order_WC_Gateway_WorldPay", submitFunction);
+        $(form).off( "checkout_place_order_WC_Gateway_Worldpay");
+        $(form).on( "checkout_place_order_WC_Gateway_Worldpay", submitFunction);
     };
     var temporarilyDetatchHandlers = function() {
-        $(form).off( "checkout_place_order_WC_Gateway_WorldPay");
-        $(form).on( "checkout_place_order_WC_Gateway_WorldPay", reattachHandlers);
+        $(form).off( "checkout_place_order_WC_Gateway_Worldpay");
+        $(form).on( "checkout_place_order_WC_Gateway_Worldpay", reattachHandlers);
     };
-    Worldpay.setClientKey(WorldPayConfig.ClientKey);
+    Worldpay.setClientKey(WorldpayConfig.ClientKey);
     Worldpay.reusable = true;
     return {
         setupNewCardForm: function(){

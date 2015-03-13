@@ -6,7 +6,7 @@
  * Time: 17:05
  */
 
-class WorldPay_WebhookRequest {
+class Worldpay_WebhookRequest {
 	public $order_code;
 	public $paymentStatus;
 	public $environment;
@@ -25,7 +25,7 @@ class WorldPay_WebhookRequest {
 			&& isset( $webhook_data['environment'] )
 			&& isset( $webhook_data['paymentStatus'] ) )
 		{
-			return new WorldPay_WebhookRequest( $webhook_data );
+			return new Worldpay_WebhookRequest( $webhook_data );
 		}
 		return null;
 	}

@@ -6,7 +6,7 @@
  * Time: 17:02
  */
 
-class WorldPay_Response_States {
+class Worldpay_Response_States {
 	const SUCCESS = 'SUCCESS';
 	const FAILED = 'FAILED';
 	const REFUNDED = 'REFUNDED';
