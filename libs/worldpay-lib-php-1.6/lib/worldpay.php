@@ -1,7 +1,8 @@
 <?php
 
 /**
- * PHP library version: v1.2
+ * PHP library version: v1.6 (wp_modified)
+ * - modified for Wordpress
  */
 
 final class Worldpay
@@ -12,10 +13,11 @@ final class Worldpay
      * */
 
     private $service_key = "";
-    private $timeout = 10;
+    private $timeout = 65;
     private $disable_ssl = false;
     private $endpoint = 'https://api.worldpay.com/v1/';
     private static $use_external_JSON = false;
+    private $order_types = ['ECOM', 'MOTO', 'RECURRING'];
 
     private static $errors = array(
         "ip"        => "Invalid parameters",
@@ -40,9 +42,13 @@ final class Worldpay
         'refund'    =>  array(
             'ordercode'         => 'No order code entered'
         ),
+        'capture'    =>  array(
+            'ordercode'         => 'No order code entered'
+        ),
         'json'      => 'JSON could not be decoded',
         'key'       => 'Please enter your service key',
-        'sslerror'  => 'Worldpay SSL certificate could not be validated'
+        'sslerror'  => 'Worldpay SSL certificate could not be validated',
+        'timeouterror'=> 'Gateway timeout - possible order failure. Please review the order in the portal to confirm success.'
     );
 
     /**
@@ -70,6 +76,31 @@ final class Worldpay
         //
     }
 
+    /**
+     * Gets the client IP by checking $_SERVER
+     * @return string
+     * */
+    private function getClientIp()
+    {
+        $ipaddress = '';
+
+        if (isset($_SERVER['HTTP_CLIENT_IP'])) {
+            $ipaddress = $_SERVER['HTTP_CLIENT_IP'];
+        } elseif (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $ipaddress = $_SERVER['HTTP_X_FORWARDED_FOR'];
+        } elseif (isset($_SERVER['HTTP_X_FORWARDED'])) {
+            $ipaddress = $_SERVER['HTTP_X_FORWARDED'];
+        } elseif (isset($_SERVER['HTTP_FORWARDED_FOR'])) {
+            $ipaddress = $_SERVER['HTTP_FORWARDED_FOR'];
+        } elseif (isset($_SERVER['HTTP_FORWARDED'])) {
+            $ipaddress = $_SERVER['HTTP_FORWARDED'];
+        } elseif (isset($_SERVER['REMOTE_ADDR'])) {
+            $ipaddress = $_SERVER['REMOTE_ADDR'];
+        } else {
+            $ipaddress = 'UNKNOWN';
+        }
+        return $ipaddress;
+    }
     /**
      * Checks if variable is a float
      * @param float $number
@@ -146,7 +177,7 @@ final class Worldpay
         }
 
         $clientUserAgent = 'os.name=' . php_uname('s') . ';os.version=' . php_uname('r') . ';os.arch=' .
-        $arch . ';lang.version='. phpversion() . ';lib.version=v1.2;' .
+        $arch . ';lang.version='. phpversion() . ';lib.version=v1.6;' .
         'api.version=v1;lang=php;owner=worldpay';
 
         curl_setopt(
@@ -167,6 +198,7 @@ final class Worldpay
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         }
 
+
         $result = curl_exec($ch);
         $info = curl_getinfo($ch);
         $err = curl_error($ch);
@@ -177,6 +209,8 @@ final class Worldpay
         if ($result === false) {
             if ($errno === 60) {
                 self::onError('sslerror', false, $errno, null, $err);
+            } else if ($errno === 28) {
+                self::onError('timeouterror', false, $errno, null, $err);
             } else {
                 self::onError('uanv', false, $errno, null, $err);
             }
@@ -212,7 +246,7 @@ final class Worldpay
         } elseif ($expectResponse && $info['http_code'] != 200) {
             // If we expect a result and we have an error
             self::onError('uanv', self::$errors['json'], 503);
-            
+
         } elseif (!$expectResponse) {
 
             if ($info['http_code'] != 200) {
@@ -240,21 +274,36 @@ final class Worldpay
             'orderType' => 'ECOM',
             'customerIdentifiers' => null,
             'billingAddress' => null,
+            'is3DSOrder' => false,
+            'authoriseOnly' => false,
+            'redirectURL' => false
         );
 
         $order = array_merge($defaults, $order);
 
-        $json = json_encode(array(
+        $obj = array(
             "token" => $order['token'],
             "orderDescription" => $order['orderDescription'],
             "amount" => $order['amount'],
+            "is3DSOrder" => ($order['is3DSOrder']) ? true : false,
             "currencyCode" => $order['currencyCode'],
             "name" => $order['name'],
-            "orderType" => $order['orderType'],
+            "orderType" => (in_array($order['orderType'], $this->order_types)) ? $order['orderType'] : 'ECOM',
+            "authorizeOnly" => ($order['authoriseOnly']) ? true : false,
             "billingAddress" => $order['billingAddress'],
             "customerOrderCode" => $order['customerOrderCode'],
             "customerIdentifiers" => $order['customerIdentifiers']
-        ));
+        );
+
+        if ($obj['is3DSOrder']) {
+            $_SESSION['worldpay_sessionid'] = uniqid();
+            $obj['shopperIpAddress'] = $this->getClientIp();
+            $obj['shopperSessionId'] = $_SESSION['worldpay_sessionid'];
+            $obj['shopperUserAgent'] = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
+            $obj['shopperAcceptHeader'] = isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : '';
+        }
+
+        $json = json_encode($obj);
 
         $response = $this->sendRequest('orders', $json, true);
 
@@ -267,19 +316,77 @@ final class Worldpay
     }
 
     /**
-     * Refund Worldpay order
+     * Authorise Worldpay 3DS Order
+     * @param string $orderCode
+     * @param string $responseCode
+     * */
+    public function authorise3DSOrder($orderCode, $responseCode)
+    {
+        $json = json_encode(array(
+            "threeDSResponseCode" => $responseCode,
+            "shopperSessionId" => $_SESSION['worldpay_sessionid'],
+            "shopperAcceptHeader" => $_SERVER['HTTP_ACCEPT'],
+            "shopperUserAgent" => $_SERVER['HTTP_USER_AGENT'],
+            "shopperIpAddress" => $this->getClientIp()
+        ));
+        return $this->sendRequest('orders/' . $orderCode, $json, true, 'PUT');
+    }
+
+    /**
+     * Capture Authorized Worldpay Order
+     * @param string $orderCode
+     * @param string $amount
+     * */
+    public function captureAuthorisedOrder($orderCode = false, $amount = null)
+    {
+        if (empty($orderCode) || !is_string($orderCode)) {
+            self::onError('ip', self::$errors['capture']['ordercode']);
+        }
+
+        if (!empty($amount) && is_numeric($amount)) {
+            $json = json_encode(array('captureAmount'=>"{$amount}"));
+        } else {
+            $json = false;
+        }
+
+        $this->sendRequest('orders/' . $orderCode . '/capture', $json, !!$json);
+    }
+
+    /**
+     * Cancel Authorized Worldpay Order
      * @param string $orderCode
      * */
-    public function refundOrder($orderCode = false)
+    public function cancelAuthorisedOrder($orderCode = false)
+    {
+        if (empty($orderCode) || !is_string($orderCode)) {
+            self::onError('ip', self::$errors['capture']['ordercode']);
+        }
+
+        $this->sendRequest('orders/' . $orderCode, false, false, 'DELETE');
+    }
+
+    /**
+     * Refund Worldpay order
+     * @param bool $orderCode
+     * @param null $amount
+     */
+    public function refundOrder($orderCode = false, $amount = null)
     {
         if (empty($orderCode) || !is_string($orderCode)) {
             self::onError('ip', self::$errors['refund']['ordercode']);
         }
-        $this->sendRequest('orders/' . $orderCode . '/refund');
+
+        if (!empty($amount) && is_numeric($amount)) {
+            $json = json_encode(array('refundAmount'=>"{$amount}"));
+        } else {
+            $json = false;
+        }
+
+        $this->sendRequest('orders/' . $orderCode . '/refund', $json, false);
     }
 
     /**
-     * Get card details from Worldpay token 
+     * Get card details from Worldpay token
      * @param string $token
      * @return array card details
      * */
@@ -293,7 +400,7 @@ final class Worldpay
         if (!isset($response['paymentMethod'])) {
             self::onError("apierror");
         }
-        
+
         return $response['paymentMethod'];
     }
 
