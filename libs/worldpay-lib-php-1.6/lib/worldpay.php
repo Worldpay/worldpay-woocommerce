@@ -21,7 +21,7 @@ final class Worldpay
 
     private static $errors = array(
         "ip"        => "Invalid parameters",
-        "cine"      => "php_curl was not found",
+        "http"      => "http error",
         "to"        => "Request timed out",
         "nf"        => "Not found",
         "apierror"  => "API Error",
@@ -69,9 +69,9 @@ final class Worldpay
             $this->timeout = $timeout;
         }
 
-        if (!function_exists("curl_init")) {
-            self::onError("cine");
-        }
+        // if (!function_exists("curl_init")) {
+        //     self::onError("cine");
+        // }
 
         //
     }
@@ -155,14 +155,6 @@ final class Worldpay
      * */
     private function sendRequest($action, $json = false, $expectResponse = false, $method = 'POST')
     {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->endpoint.$action);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
-        curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
 
         $arch = 'x86';
         switch(PHP_INT_SIZE) {
@@ -177,51 +169,37 @@ final class Worldpay
         }
 
         $clientUserAgent = 'os.name=' . php_uname('s') . ';os.version=' . php_uname('r') . ';os.arch=' .
-        $arch . ';lang.version='. phpversion() . ';lib.version=v1.6;' .
-        'api.version=v1;lang=php;owner=worldpay';
+        $arch . ';lang.version='. phpversion() . ';lib.version=v1.6;' . 'api.version=v1;lang=php-woocommerce;owner=worldpay';
 
-        curl_setopt(
-            $ch,
-            CURLOPT_HTTPHEADER,
-            array(
-                "Authorization: $this->service_key",
-                "Content-Type: application/json",
-                "X-wp-client-user-agent: $clientUserAgent",
-                "Content-Length: " . strlen($json)
+        $ars = array();
+
+        $response = wp_remote_request( $this->endpoint.$action, array(
+            'method' => $method,
+            'timeout' => $this->timeout,
+            'redirection' => 5,
+            'httpversion' => '1.0',
+            'blocking' => true,
+            'headers' => array(
+                "Authorization"=> "$this->service_key",
+                "Content-Type"=> "application/json",
+                "X-wp-client-user-agent"=> "$clientUserAgent",
+                "Content-Length"=> strlen($json)
+            ),
+            'body' => $json,
+            'cookies' => array()
             )
         );
-        // Disabling SSL used for localhost testing
-        if ($this->disable_ssl === true) {
-            if (substr($this->service_key, 0, 1) != 'T') {
-                self::onError('ssl');
-            }
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+        if ( is_wp_error( $response ) ) {
+            $errorResponse = $response->get_error_message();
+
+            self::onError('http', false, $response['response']['code'], null, $response['response']['message']);
+
+            $original_response = "";
+        } else {
+            $original_response = $response;
+            $response = self::handleResponse($response['body']);
         }
-
-
-        $result = curl_exec($ch);
-        $info = curl_getinfo($ch);
-        $err = curl_error($ch);
-        $errno = curl_errno($ch);
-        curl_close($ch);
-
-        // Curl error
-        if ($result === false) {
-            if ($errno === 60) {
-                self::onError('sslerror', false, $errno, null, $err);
-            } else if ($errno === 28) {
-                self::onError('timeouterror', false, $errno, null, $err);
-            } else {
-                self::onError('uanv', false, $errno, null, $err);
-            }
-        }
-
-        if (substr($result, -1) != '}') {
-            $result = substr($result, 0, -1);
-        }
-
-        // Decode JSON
-        $response = self::handleResponse($result);
 
         // Check JSON has decoded correctly
         if ($expectResponse && ($response === null || $response === false )) {
@@ -235,7 +213,7 @@ final class Worldpay
                 self::onError(
                     false,
                     $response["message"],
-                    $info['http_code'],
+                    $original_response['response']['code'],
                     $response['httpStatusCode'],
                     $response['description'],
                     $response['customCode']
@@ -243,14 +221,14 @@ final class Worldpay
 
             }
 
-        } elseif ($expectResponse && $info['http_code'] != 200) {
+        } elseif ($expectResponse && $original_response['response']['code'] != 200) {
             // If we expect a result and we have an error
             self::onError('uanv', self::$errors['json'], 503);
 
         } elseif (!$expectResponse) {
 
-            if ($info['http_code'] != 200) {
-                self::onError('apierror', $result, $info['http_code']);
+            if ($original_response['response']['code'] != 200) {
+                self::onError('apierror', $result, $original_response['response']['code']);
             } else {
                 $response = true;
             }
