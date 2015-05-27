@@ -68,12 +68,6 @@ final class Worldpay
         if ($timeout !== false) {
             $this->timeout = $timeout;
         }
-
-        // if (!function_exists("curl_init")) {
-        //     self::onError("cine");
-        // }
-
-        //
     }
 
     /**
