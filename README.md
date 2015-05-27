@@ -1,1 +1,1 @@
-# worldpay-woocommerce
+# woocommerce-worldpay-gateway
