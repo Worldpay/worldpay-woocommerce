@@ -149,7 +149,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				}
 				catch ( Exception $e )
 				{
-					wc_add_notice( __('Payment error:', 'woothemes') . ' ' . $e->getMessage(), 'error' );
+					wc_add_notice( __('Payment error:', 'woocommerce-gateway-worldpay') . ' ' . $e->getMessage(), 'error' );
 					return;
 				}
 
@@ -168,7 +168,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 						'redirect' => $this->get_return_url( $order )
 					);
 				} else {
-					wc_add_notice( __('Payment error:', 'woothemes') . " " . $response['paymentStatusReason'], 'error' );
+					wc_add_notice( __('Payment error:', 'woocommerce-gateway-worldpay') . " " . $response['paymentStatusReason'], 'error' );
 					return;
 				}
 			}
