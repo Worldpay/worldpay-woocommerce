@@ -1,4 +1,9 @@
 <?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Created by PhpStorm.
  * User: RAS
@@ -29,4 +34,4 @@ class Worldpay_WebhookRequest {
 		}
 		return null;
 	}
-} 
+}

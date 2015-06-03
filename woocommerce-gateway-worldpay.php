@@ -149,7 +149,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				}
 				catch ( Exception $e )
 				{
-					wc_add_notice( __('Payment error:', 'woothemes') . ' ' . $e->getMessage(), 'error' );
+					wc_add_notice( __('Payment error:', 'woocommerce-gateway-worldpay') . ' ' . $e->getMessage(), 'error' );
 					return;
 				}
 
@@ -168,7 +168,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 						'redirect' => $this->get_return_url( $order )
 					);
 				} else {
-					wc_add_notice( __('Payment error:', 'woothemes') . " " . $response['paymentStatusReason'], 'error' );
+					wc_add_notice( __('Payment error:', 'woocommerce-gateway-worldpay') . " " . $response['paymentStatusReason'], 'error' );
 					return;
 				}
 			}
@@ -307,6 +307,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 		}
 	}
+	load_plugin_textdomain( 'woocommerce-gateway-worldpay', false, trailingslashit( dirname( plugin_basename( __FILE__ ) ) ) . 'languages' );
 	add_action( 'plugins_loaded', 'init_woocommerce_worldpay_payment_gateway' );
 
 	function woocommerce_add_worldpay_payment_gateway( $methods ) {

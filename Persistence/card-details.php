@@ -1,5 +1,9 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class Worldpay_CardDetails
 {
 	public $token;
@@ -30,4 +34,4 @@ class Worldpay_CardDetails
 			return null;
 		}
 	}
-} 
+}

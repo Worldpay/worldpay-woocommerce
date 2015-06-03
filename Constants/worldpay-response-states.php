@@ -6,6 +6,10 @@
  * Time: 17:02
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class Worldpay_Response_States {
 	const SUCCESS = 'SUCCESS';
 	const FAILED = 'FAILED';

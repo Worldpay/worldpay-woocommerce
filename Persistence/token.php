@@ -1,5 +1,9 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class Worldpay_Token
 {
 	public static function get_by_user($user)
@@ -15,4 +19,4 @@ class Worldpay_Token
 
 		return $tokens[0];
 	}
-} 
+}

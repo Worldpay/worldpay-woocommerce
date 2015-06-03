@@ -1,5 +1,9 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class Worldpay_PaymentForm
 {
 	public static function render_payment_form( $storeTokens, $cardDetails ) {
@@ -152,4 +156,4 @@ class Worldpay_PaymentForm
 			</script>
 		<?php
 	}
-} 
+}
