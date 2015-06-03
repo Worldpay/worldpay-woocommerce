@@ -1,0 +1,117 @@
+# Copyright (C) 2015 
+# This file is distributed under the same license as the  package.
+msgid ""
+msgstr ""
+"Project-Id-Version:  \n"
+"Report-Msgid-Bugs-To: http://wordpress.org/tag/worldpay-woocommerce\n"
+"POT-Creation-Date: 2015-06-03 13:58:41+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2015-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+
+#: Forms/admin-form.php:13
+msgid "Enable/Disable"
+msgstr ""
+
+#: Forms/admin-form.php:15
+msgid "Enable Worldpay"
+msgstr ""
+
+#: Forms/admin-form.php:19
+msgid "Testing"
+msgstr ""
+
+#: Forms/admin-form.php:21
+msgid "Use test settings"
+msgstr ""
+
+#: Forms/admin-form.php:25
+msgid "Title"
+msgstr ""
+
+#: Forms/admin-form.php:27
+msgid "This controls the title which the user sees during checkout."
+msgstr ""
+
+#: Forms/admin-form.php:28 woocommerce-gateway-worldpay.php:44
+msgid "Worldpay"
+msgstr ""
+
+#: Forms/admin-form.php:32
+msgid "Customer Message"
+msgstr ""
+
+#: Forms/admin-form.php:37
+msgid "Card-on-file Payment"
+msgstr ""
+
+#: Forms/admin-form.php:39
+msgid "Enable card-on-file payment"
+msgstr ""
+
+#: Forms/admin-form.php:43
+msgid "Webhooks"
+msgstr ""
+
+#: Forms/admin-form.php:45
+msgid "Enable webhooks"
+msgstr ""
+
+#: Forms/admin-form.php:50
+msgid "Service Key"
+msgstr ""
+
+#: Forms/admin-form.php:55
+msgid "Client Key"
+msgstr ""
+
+#: Forms/admin-form.php:60
+msgid "Test Service Key"
+msgstr ""
+
+#: Forms/admin-form.php:65
+msgid "Test Client Key"
+msgstr ""
+
+#: Forms/payment-form.php:117
+msgid "Save card details?"
+msgstr ""
+
+#: woocommerce-gateway-worldpay.php:45
+msgid "The Worldpay payment gateway"
+msgstr ""
+
+#: woocommerce-gateway-worldpay.php:152 woocommerce-gateway-worldpay.php:171
+msgid "Payment error:"
+msgstr ""
+
+#: woocommerce-gateway-worldpay.php:192 woocommerce-gateway-worldpay.php:237
+msgid "Refunded"
+msgstr ""
+
+#: woocommerce-gateway-worldpay.php:225
+msgid "Payment successful"
+msgstr ""
+
+#: woocommerce-gateway-worldpay.php:228
+msgid "Payment settled"
+msgstr ""
+
+#: woocommerce-gateway-worldpay.php:232
+msgid "Payment failed"
+msgstr ""
+
+#: woocommerce-gateway-worldpay.php:248
+msgid "Payment disputed - information requested."
+msgstr ""
+
+#: woocommerce-gateway-worldpay.php:251
+msgid "Information received."
+msgstr ""
+
+#: woocommerce-gateway-worldpay.php:254
+msgid "Order charged back."
+msgstr ""
