@@ -1,5 +1,9 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class Worldpay_AdminForm
 {
 	public static function get_admin_form_fields()

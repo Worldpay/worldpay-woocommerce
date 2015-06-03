@@ -1,5 +1,9 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 /**
  * PHP library version: v1.6 (wp_modified)
  * - modified for Wordpress
