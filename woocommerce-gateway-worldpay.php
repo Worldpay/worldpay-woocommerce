@@ -41,8 +41,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			{
 				$this->id = "WC_Gateway_Worldpay";
 				$this->has_fields = true;
-				$this->method_title = "Worldpay";
-				$this->method_description = "The Worldpay payment gateway";
+				$this->method_title = __( 'Worldpay', 'woocommerce-gateway-worldpay' );
+				$this->method_description = __( 'The Worldpay payment gateway', 'woocommerce-gateway-worldpay' );
 
 				$this->supports = array(
 					'products',
