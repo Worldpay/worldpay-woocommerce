@@ -1,0 +1,1 @@
+xcopy C:\Users\Ollie\Documents\GitHub\worldpay-woocommerce C:\wamp\www\wordpress\wp-content\plugins\worldpay-woocommerce-master /E /Y

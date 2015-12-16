@@ -14,13 +14,14 @@ WorldpayCheckout = function( $ ) {
     return {
         setupNewCardForm: function(){
             form = document.getElementsByName('checkout')[0];
-            Worldpay.useForm(form, function(status, response) {
-                $("input#place_order").prop("disabled", false);
-                if (response.error) {
-                    $('#worldpay-payment-errors').addClass('woocommerce-error');
-                    Worldpay.handleError(form, document.getElementById('worldpay-payment-errors'), response.error);
-                    return false;
-                } else {
+            Worldpay.useTemplateForm({
+                'clientKey':WorldpayConfig.ClientKey,
+                'form':form,
+                'paymentSection':'worldpay-templateform',
+                'display':'inline',
+                'saveButton':false,
+                'callback': function(response) {
+                  if (response && response.token) {
                     var errorMessage = $('#worldpay-payment-errors');
                     errorMessage.removeClass('woocommerce-error');
                     errorMessage.empty();
@@ -29,6 +30,7 @@ WorldpayCheckout = function( $ ) {
                     temporarilyDetatchHandlers();
                     $(form).submit();
                     return true;
+                  }
                 }
             });
             submitFunction = form.onsubmit;

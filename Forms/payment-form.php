@@ -52,36 +52,7 @@ class Worldpay_PaymentForm
 
 	public static function common_fields() {
 		?>
-			<p class="form-row form-row-wide worldpay_new_card_fields validate-required">
-				<label for="worldpay_name">
-					Name on Card
-					<abbr class="required" title="required">*</abbr>
-				</label>
-				<input id="worldpay_name" data-worldpay="name" name="name" type="text" placeholder="Name on Card" class="input-text" autocomplete="off"
-			</p>
-			<p class="form-row form-row-wide worldpay_new_card_fields validate-required">
-				<label for="worldpay_card_number">
-					Card Number
-					<abbr class="required" title="required">*</abbr>
-				</label>
-				<input id="worldpay_card_number" data-worldpay="number" size="20" type="text" placeholder="Card Number" class="input-text" autocomplete="off"/>
-			</p>
-			<p class="form-row form-row-wide validate-required">
-				<label for="worldpay_cvc">
-					CVC
-					<abbr class="required" title="required">*</abbr>
-				</label>
-				<span class="help">The 3 or 4 numbers on the back of your card</span>
-				<input id="worldpay_cvc" data-worldpay="cvc" size="4" type="text" placeholder="CVC" class="input-text" autocomplete="off"/>
-			</p>
-			<p class="form-row form-row-wide worldpay_new_card_fields validate-required">
-				<label for="worldpay_expiration_month">
-					Expiration Date
-					<abbr class="required" title="required">*</abbr>
-				</label>
-				<?php self::month_select() ?>
-				<?php self::year_select() ?>
-			</p>
+			<div class="worldpay_new_card_fields" id="worldpay-templateform">Loading..</div>
 		<?php
 	}
 
