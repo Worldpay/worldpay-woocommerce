@@ -272,9 +272,8 @@ final class Worldpay
         );
 
         if ($obj['is3DSOrder']) {
-            $_SESSION['worldpay_sessionid'] = uniqid();
             $obj['shopperIpAddress'] = $this->getClientIp();
-            $obj['shopperSessionId'] = $_SESSION['worldpay_sessionid'];
+            $obj['shopperSessionId'] = $this->getSessionId();
             $obj['shopperUserAgent'] = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
             $obj['shopperAcceptHeader'] = isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : '';
         }
@@ -300,7 +299,7 @@ final class Worldpay
     {
         $json = json_encode(array(
             "threeDSResponseCode" => $responseCode,
-            "shopperSessionId" => $_SESSION['worldpay_sessionid'],
+            "shopperSessionId" => $this->getSessionId(),
             "shopperAcceptHeader" => $_SERVER['HTTP_ACCEPT'],
             "shopperUserAgent" => $_SERVER['HTTP_USER_AGENT'],
             "shopperIpAddress" => $this->getClientIp()

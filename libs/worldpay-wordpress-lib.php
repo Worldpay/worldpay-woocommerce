@@ -85,4 +85,9 @@ class WordpressWorldpay extends Worldpay {
 
         return $response;
     }
+
+    public function getShopperAcceptHeader()
+    {
+       return '*/*';
+    }
 }

@@ -127,4 +127,25 @@ class Worldpay_PaymentForm
 			</script>
 		<?php
 	}
+
+	public static function three_ds_redirect($response, $order) {
+		?>
+		<form id="submitForm" method="post" action="<?php echo $response['redirectURL'] ?>">
+			<input type="hidden" name="PaReq" value="<?php echo $response['oneTime3DsToken']; ?>"/>
+			<input type="hidden" id="termUrl" name="TermUrl" value="<?php echo $order->get_checkout_order_received_url( ); ?>"/>
+			<script>
+				document.getElementById('submitForm').submit();
+			</script>
+		</form>
+		<?php
+	}
+
+	public static function render_paypal_form() {
+		?>
+			<?php echo __('You will be redirected to PayPal to complete your transaction.') ?>
+			<script type="text/javascript">
+				WorldpayCheckout.setupPayPalForm();
+			</script>
+		<?php
+	}
 }

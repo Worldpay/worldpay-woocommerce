@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Worldpay_Response_States {
 	const SUCCESS = 'SUCCESS';
+	const AUTHORIZED = 'AUTHORIZED';
+	const PRE_AUTHORIZED = 'PRE_AUTHORIZED';
 	const FAILED = 'FAILED';
 	const REFUNDED = 'REFUNDED';
 	const SETTLED = 'SETTLED';

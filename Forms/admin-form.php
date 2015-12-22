@@ -21,6 +21,24 @@ class Worldpay_AdminForm
 				'label' => __( 'Use test settings', 'woocommerce-gateway-worldpay' ),
 				'default' => 'no'
 			),
+			'paymentaction' => array(
+				'title'       => __( 'Payment Action', 'woocommerce' ),
+				'type'        => 'select',
+				'class'       => 'wc-enhanced-select',
+				'description' => __( 'Choose whether you wish to capture funds immediately or authorize payment only.', 'woocommerce' ),
+				'default'     => 'sale',
+				'desc_tip'    => true,
+				'options'     => array(
+					'sale'          => __( 'Capture', 'woocommerce' ),
+					'authorization' => __( 'Authorize', 'woocommerce' )
+				)
+			),
+			'threeds_enabled' => array(
+				'title' => __( '3DS Enabled', 'woocommerce-gateway-worldpay' ),
+				'type' => 'checkbox',
+				'label' => __( 'Enable 3Ds', 'woocommerce-gateway-worldpay' ),
+				'default' => 'no'
+			),
 			'title' => array(
 				'title' => __( 'Title', 'woocommerce-gateway-worldpay' ),
 				'type' => 'text',
@@ -65,6 +83,25 @@ class Worldpay_AdminForm
 				'title' => __( 'Test Client Key', 'woocommerce-gateway-worldpay' ),
 				'type' => 'text',
 				'default' => ''
+			)
+		);
+	}
+
+	public static function get_paypal_admin_form_fields()
+	{
+		return array(
+			'enabled' => array(
+				'title' => __( 'Enable/Disable', 'woocommerce-gateway-worldpay' ),
+				'type' => 'checkbox',
+				'label' => __( 'Enable Worldpay PayPal', 'woocommerce-gateway-worldpay' ),
+				'default' => 'yes'
+			),
+			'title' => array(
+				'title' => __( 'Title', 'woocommerce-gateway-worldpay' ),
+				'type' => 'text',
+				'description' => __( 'This controls the title which the user sees during checkout.', 'woocommerce-gateway-worldpay' ),
+				'default' => __( 'Worldpay PayPal', 'woocommerce-gateway-worldpay' ),
+				'desc_tip'	  => true,
 			)
 		);
 	}
