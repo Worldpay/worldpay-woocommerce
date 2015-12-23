@@ -317,7 +317,7 @@ class Worldpay
             "failureUrl" => $order['failureUrl'],
             "cancelUrl" => $order['cancelUrl']
         );
-
+        
         if (isset($order['statementNarrative'])) {
             $obj['statementNarrative'] = $order['statementNarrative'];
         }

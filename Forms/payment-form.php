@@ -28,16 +28,27 @@ class Worldpay_PaymentForm
 
 	public static function existing_details_fields( Worldpay_CardDetails $card_details ) {
 		?>
-			<p class="form-row form-row-first">
+			<p class="form-row">
 				<label for="worldpay_saved_card">
 					<strong>
 						Saved card details:
 					</strong>
 				</label>
 				<input id="worldpay_saved_card" type="text" class="input-text" disabled autocomplete="off" value="<?php echo $card_details->masked_card_number ?>"/>
+
 				<input id="worldpay_token" type="hidden" data-worldpay="token" value="<?php echo $card_details->token ?>"/>
 			</p>
-			<p class="form-row form-row-last">
+
+			<p class="form-row">
+				<label for="worldpay_saved_card">
+					<strong>
+						CVC:
+					</strong>
+				</label>
+				<input style="width:150px" id="worldpay_cvc" type="text" data-worldpay="cvc" value=""/>
+			</p>
+
+			<p class="form-row">
 				<label for="worldpay_use_saved_card_details">
 					Use saved card details?
 				</label>
@@ -47,6 +58,9 @@ class Worldpay_PaymentForm
 					New card details:
 				</strong>
 			</p>
+
+		
+
 		<?php
 	}
 
@@ -113,15 +127,15 @@ class Worldpay_PaymentForm
 							$(checkbox).click(function()
 							{
 								newCardFormSections.toggle();
-								if($(checkbox).attr('checked'))
-								{
-									WorldpayCheckout.setupReusableCardForm();
-								} else {
-									WorldpayCheckout.setupNewCardForm();
-								}
+								// if($(checkbox).attr('checked'))
+								// {
+								// 	WorldpayCheckout.setupReusableCardForm();
+								// } else {
+								// 	WorldpayCheckout.setupNewCardForm();
+								// }
 							});
 						}
-						WorldpayCheckout.setupReusableCardForm();
+						WorldpayCheckout.setupNewCardForm();
 					});
 				});
 			</script>
@@ -145,6 +159,24 @@ class Worldpay_PaymentForm
 			<?php echo __('You will be redirected to PayPal to complete your transaction.') ?>
 			<script type="text/javascript">
 				WorldpayCheckout.setupPayPalForm();
+			</script>
+		<?php
+	}
+
+	public static function render_giropay_form() {
+		?>
+			<?php echo __('You will be redirected to Giropay to complete your transaction.') ?>
+
+			<p class="form-row form-row-first">
+				<label for="worldpay_swift_code">
+					<strong>
+						Swift code:
+					</strong>
+				</label>
+				<input id="worldpay_swift_code" type="text" class="input-text" autocomplete="off" value=""/>
+			</p>
+			<script type="text/javascript">
+				WorldpayCheckout.setupGiropayForm();
 			</script>
 		<?php
 	}

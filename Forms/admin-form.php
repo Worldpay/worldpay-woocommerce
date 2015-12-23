@@ -105,4 +105,23 @@ class Worldpay_AdminForm
 			)
 		);
 	}
+
+	public static function get_giropay_admin_form_fields()
+	{
+		return array(
+			'enabled' => array(
+				'title' => __( 'Enable/Disable', 'woocommerce-gateway-worldpay' ),
+				'type' => 'checkbox',
+				'label' => __( 'Enable Worldpay Giropay', 'woocommerce-gateway-worldpay' ),
+				'default' => 'yes'
+			),
+			'title' => array(
+				'title' => __( 'Title', 'woocommerce-gateway-worldpay' ),
+				'type' => 'text',
+				'description' => __( 'This controls the title which the user sees during checkout.', 'woocommerce-gateway-worldpay' ),
+				'default' => __( 'Worldpay Giropay', 'woocommerce-gateway-worldpay' ),
+				'desc_tip'	  => true,
+			)
+		);
+	}
 }

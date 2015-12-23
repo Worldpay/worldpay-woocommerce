@@ -269,6 +269,45 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				}
 			}
 
+			protected function process_status($status, $order) {
+				switch ( $webhookRequest->paymentStatus )
+				{
+					case Worldpay_Response_States::SUCCESS:
+						$order->payment_complete();
+						$order->add_order_note( __( 'Payment successful' ));
+						break;
+					case Worldpay_Response_States::SETTLED:
+						$order->add_order_note( __( 'Payment settled' ));
+						break;
+					case Worldpay_Response_States::FAILED:
+						$order->update_status('failed');
+						$order->add_order_note( __( 'Payment failed' ));
+						break;
+					case Worldpay_Response_States::REFUNDED:
+						if ( 0 == $order->get_total_refunded() )
+						{
+							$order->add_order_note( __( 'Refunded' ));
+							$args = array(
+								'amount'	 => $order->get_total(),
+								'reason'	 => "Order refunded in Worldpay",
+								'order_id'   => $order->id,
+								'line_items' => array()
+							);
+							wc_create_refund($args);
+						}
+						break;
+					case Worldpay_Response_States::INFORMATION_REQUESTED:
+						$order->add_order_note( __( 'Payment disputed - information requested.' ));
+						break;
+					case Worldpay_Response_States::INFORMATION_SUPPLIED:
+						$order->add_order_note( __( 'Information received.' ));
+						break;
+					case Worldpay_Response_States::CHARGED_BACK:
+						$order->add_order_note( __( 'Order charged back.' ));
+						break;
+				}
+			}
+
 			public function handle_webhook() {
 				if ( ! $this->notifications_enabled ) {
 					return;
@@ -291,42 +330,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					if ( null == $order || null == $order->id ) {
 						return;
 					}
-					switch ( $webhookRequest->paymentStatus )
-					{
-						case Worldpay_Response_States::SUCCESS:
-							$order->payment_complete();
-							$order->add_order_note( __( 'Payment successful' ));
-							break;
-						case Worldpay_Response_States::SETTLED:
-							$order->add_order_note( __( 'Payment settled' ));
-							break;
-						case Worldpay_Response_States::FAILED:
-							$order->update_status('failed');
-							$order->add_order_note( __( 'Payment failed' ));
-							break;
-						case Worldpay_Response_States::REFUNDED:
-							if ( 0 == $order->get_total_refunded() )
-							{
-								$order->add_order_note( __( 'Refunded' ));
-								$args = array(
-									'amount'	 => $order->get_total(),
-									'reason'	 => "Order refunded in Worldpay",
-									'order_id'   => $order->id,
-									'line_items' => array()
-								);
-								wc_create_refund($args);
-							}
-							break;
-						case Worldpay_Response_States::INFORMATION_REQUESTED:
-							$order->add_order_note( __( 'Payment disputed - information requested.' ));
-							break;
-						case Worldpay_Response_States::INFORMATION_SUPPLIED:
-							$order->add_order_note( __( 'Information received.' ));
-							break;
-						case Worldpay_Response_States::CHARGED_BACK:
-							$order->add_order_note( __( 'Order charged back.' ));
-							break;
-					}
+					$this->process_status($webhookRequest->paymentStatus, $order);
 				}
 				catch ( Exception $e )
 				{
@@ -419,9 +423,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					$this->enqueue_checkout_scripts();
 				}
 
-			//	add_action( 'woocommerce_api_wc_gateway_worldpay', array( $this, 'handle_webhook' ) );
+				add_action( 'woocommerce_api_wc_gateway_worldpay', array( $this, 'handle_webhook' ) );
 			//	add_action('woocommerce_receipt_' . $this->id, array(&$this, 'receipt_page'));
-			//	add_action('woocommerce_thankyou_' . $this->id,array(&$this, 'thankyou_page'));
+				add_action('woocommerce_thankyou_' . $this->id,array(&$this, 'thankyou_page'));
 
 			}
 			public function init_form_fields()
@@ -460,10 +464,10 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 						'name' => $name,
 						'billingAddress' => $billing_address,
 						'customerOrderCode' => $order_id,
-						'successUrl' => $order->get_checkout_order_received_url(),
-						'pendingUrl' => $order->get_checkout_order_received_url(),
-						'failureUrl' =>  $order->get_checkout_order_received_url(),
-						'cancelUrl' =>  $this->get_return_url( $order )
+						'successUrl' => $order->get_checkout_order_received_url() . '&status=success&',
+						'pendingUrl' => $order->get_checkout_order_received_url() . '&status=pending&',
+						'failureUrl' =>  $order->get_checkout_order_received_url() . '&status=failure&',
+						'cancelUrl' =>  WC()->cart->get_checkout_url() . '&'
 					));
 				}
 				catch ( Exception $e )
@@ -484,6 +488,85 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					return;
 				}
 			}
+			public function thankyou_page($order_id) 
+			{
+				$response = WC()->session->get( 'wp_order');
+				if ($response) {
+					WC()->session->set( 'wp_order', false);
+					$order = new WC_Order($order_id);
+					
+					$status = $_GET['status'];
+
+					if ($status == 'failure') {
+						wc_add_notice( __('Payment error:', 'woocommerce-gateway-worldpay') . ' Payment failed, please try again', 'error' );
+						wp_redirect($order->get_checkout_payment_url( true ));
+						return;
+					}
+					try {
+						$wpOrder = $this->get_worldpay_client()->getOrder($response['orderCode']);
+						if (isset($wpOrder['paymentStatus']) && ($wpOrder['paymentStatus'] === Worldpay_Response_States::SUCCESS ||  $wpOrder['paymentStatus'] === Worldpay_Response_States::AUTHORIZED)) {
+							$order->payment_complete($response['orderCode']);
+							$order->reduce_order_stock();
+						}
+					} catch (WorldpayException $e) {
+						wc_add_notice( __('Payment error:', 'woocommerce-gateway-worldpay') . ' ' . $e->getMessage(), 'error' );
+						wp_redirect($order->get_checkout_payment_url( true ));
+						return;
+					}
+				}
+			}
+		}
+		class WC_Gateway_Worldpay_Giropay extends WC_Gateway_Worldpay_Paypal {
+			private $worldpay_client;
+			protected $supported_currencies = array('EUR');
+			public function __construct()
+			{
+				$this->id = "WC_Gateway_Worldpay";
+				$this->has_fields = true;
+				$this->method_title = __( 'Worldpay Giropay', 'woocommerce-gateway-worldpay' );
+				$this->method_description = __( 'The Worldpay Giropay payment gateway, please setup your keys and other settings within the main Worldpay settings.', 'woocommerce-gateway-worldpay' );
+
+				$this->supports = array(
+					'products',
+					'refunds'
+				);
+				
+				$this->init_keys();
+
+				$this->id = "WC_Gateway_Worldpay_Giropay";
+
+				$this->init_form_fields();
+				$this->init_settings();
+
+				if( ! in_array(get_woocommerce_currency(), $this->supported_currencies)
+					|| empty($this->client_key)
+					|| empty($this->service_key)
+				) {
+					$this->enabled = false;
+				}
+
+				$this->title = $this->get_option( 'title' );
+				$this->store_tokens = $this->get_option( 'store_tokens' ) != "no";
+				$this->notifications_enabled = $this->get_option( 'notifications_enabled' ) != "no";
+
+				add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
+
+				if ( is_checkout() ) {
+					$this->enqueue_checkout_scripts();
+				}
+
+				add_action( 'woocommerce_api_wc_gateway_worldpay', array( $this, 'handle_webhook' ) );
+				add_action('woocommerce_thankyou_' . $this->id,array(&$this, 'thankyou_page'));
+
+			}
+			public function init_form_fields()
+			{
+				$this->form_fields = Worldpay_AdminForm::get_giropay_admin_form_fields();
+			}
+			public function payment_fields()
+			{
+				Worldpay_PaymentForm::render_giropay_form();
+			}
 		}
 	}
 	load_plugin_textdomain( 'woocommerce-gateway-worldpay', false, trailingslashit( dirname( plugin_basename( __FILE__ ) ) ) . 'languages' );
@@ -492,6 +575,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	function woocommerce_add_worldpay_payment_gateway( $methods ) {
 		$methods[] = 'WC_Gateway_Worldpay';
 		$methods[] = 'WC_Gateway_Worldpay_Paypal';
+		$methods[] = 'WC_Gateway_Worldpay_Giropay';
 		return $methods;
 	}
 	add_filter( 'woocommerce_payment_gateways', 'woocommerce_add_worldpay_payment_gateway' );
