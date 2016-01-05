@@ -36,6 +36,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			protected $authorize_only;
 			protected $notifications_enabled;
 			protected $service_key;
+			protected $api_endpoint;
+			protected $js_endpoint;
+
 			private $worldpay_client;
 			protected $supported_currencies = array('GBP','EUR','USD');
 
@@ -92,6 +95,15 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				$this->service_key = $this->is_test
 					? $this->get_option('test_service_key')
 					: $this->get_option('service_key');
+
+
+				$this->api_endpoint =  $this->get_option('api_endpoint')
+					? $this->get_option('api_endpoint')
+					: 'https://api.worldpay.com/v1/';
+
+				$this->js_endpoint =  $this->get_option('js_endpoint')
+					? $this->get_option('js_endpoint')
+					: 'https://cdn.worldpay.com/v1/worldpay.js';
 
 			}
 
@@ -193,7 +205,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					);
 				}
 				else if ($response['is3DSOrder'] && $response['paymentStatus'] == Worldpay_Response_States::PRE_AUTHORIZED) {
-					add_post_meta( $order_id, '_transaction_id', $response['orderCode'], true );
+					if (!add_post_meta( $order_id, '_transaction_id', $response['orderCode'], true )) {
+						update_post_meta ( $order_id, '_transaction_id', $response['orderCode'] );
+					}
 					WC()->session->set( 'wp_order' , $response );
 					return array(
 						'result' => 'success',
@@ -238,8 +252,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 						}
 
 					} catch (WorldpayException $e) {
-						wc_add_notice( __('Payment error:', 'woocommerce-gateway-worldpay') . ' ' . $e->getMessage(), 'error' );
-						wp_redirect($order->get_checkout_payment_url( true ));
+						wc_add_notice( __('Payment error:', 'woocommerce-gateway-worldpay') . ' 3DS Authentication failed, please try again', 'error' );
+						wp_redirect($order->get_checkout_payment_url(  ));
 						return;
 					}
 				}
@@ -367,7 +381,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			}
 
 			protected function enqueue_checkout_scripts() {
-				wp_enqueue_script('worldpay_script', 'https://cdn.worldpay.com/v1/worldpay.js', array('jquery', 'wc-checkout'));
+				wp_enqueue_script('worldpay_script', $this->js_endpoint, array('jquery', 'wc-checkout'));
 				wp_enqueue_script(
 					'worldpay_init', plugin_dir_url(__FILE__) . '/scripts/init_worldpay.js',
 					array('jquery', 'wc-checkout', 'worldpay_script')
@@ -378,6 +392,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			protected function get_worldpay_client() {
 				if ( ! isset($this->worldpay_client) ) {
 					$this->worldpay_client = new WordpressWorldpay( $this->service_key );
+					$this->worldpay_client->setEndpoint($this->api_endpoint);
 					$this->worldpay_client->setPluginData('WooCommerce', '1.2.0');
 				}
 				return $this->worldpay_client;
@@ -464,10 +479,10 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 						'name' => $name,
 						'billingAddress' => $billing_address,
 						'customerOrderCode' => $order_id,
-						'successUrl' => $order->get_checkout_order_received_url() . '&status=success&',
-						'pendingUrl' => $order->get_checkout_order_received_url() . '&status=pending&',
-						'failureUrl' =>  $order->get_checkout_order_received_url() . '&status=failure&',
-						'cancelUrl' =>  WC()->cart->get_checkout_url() . '&'
+						'successUrl' =>  add_query_arg( 'status', 'success', $order->get_checkout_order_received_url()) . '&',
+						'pendingUrl' =>  add_query_arg( 'status', 'pending', $order->get_checkout_order_received_url()). '&',
+						'failureUrl' =>   add_query_arg( 'status', 'failure', $order->get_checkout_order_received_url()). '&',
+						'cancelUrl' =>  add_query_arg( 'wp_cancel', '1', $order->get_checkout_payment_url()). '&'
 					));
 				}
 				catch ( Exception $e )
@@ -477,7 +492,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				}
 
 				if ($response['paymentStatus'] == Worldpay_Response_States::PRE_AUTHORIZED) {
-					add_post_meta( $order_id, '_transaction_id', $response['orderCode'], true );
+					if (!add_post_meta( $order_id, '_transaction_id', $response['orderCode'], true )) {
+						update_post_meta ( $order_id, '_transaction_id', $response['orderCode'] );
+					}
 					WC()->session->set( 'wp_order' , $response );
 					return array(
 						'result' => 'success',
@@ -488,18 +505,19 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					return;
 				}
 			}
+
 			public function thankyou_page($order_id) 
 			{
 				$response = WC()->session->get( 'wp_order');
 				if ($response) {
-					WC()->session->set( 'wp_order', false);
+					//WC()->session->set( 'wp_order', false);
 					$order = new WC_Order($order_id);
 					
-					$status = $_GET['status'];
-
+					$status = get_query_var('status', '');
+	
 					if ($status == 'failure') {
 						wc_add_notice( __('Payment error:', 'woocommerce-gateway-worldpay') . ' Payment failed, please try again', 'error' );
-						wp_redirect($order->get_checkout_payment_url( true ));
+						wp_redirect( $order->get_checkout_payment_url());
 						return;
 					}
 					try {
@@ -510,12 +528,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 						}
 					} catch (WorldpayException $e) {
 						wc_add_notice( __('Payment error:', 'woocommerce-gateway-worldpay') . ' ' . $e->getMessage(), 'error' );
-						wp_redirect($order->get_checkout_payment_url( true ));
+						wp_redirect( $order->get_checkout_payment_url());
 						return;
 					}
 				}
 			}
-		}
+		}         
 		class WC_Gateway_Worldpay_Giropay extends WC_Gateway_Worldpay_Paypal {
 			private $worldpay_client;
 			protected $supported_currencies = array('EUR');
@@ -578,5 +596,11 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 		$methods[] = 'WC_Gateway_Worldpay_Giropay';
 		return $methods;
 	}
+	function add_query_vars_filter( $vars ){
+	  $vars[] = "status";
+	  return $vars;
+	}
 	add_filter( 'woocommerce_payment_gateways', 'woocommerce_add_worldpay_payment_gateway' );
+	add_filter( 'query_vars', 'add_query_vars_filter' );
+
 }

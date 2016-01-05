@@ -109,7 +109,11 @@ class Worldpay_PaymentForm
 	public static function no_existing_details_script() {
 		?>
 			<script type="text/javascript">
-				WorldpayCheckout.setupNewCardForm();
+				jQuery(function($){
+					$(document).ready(function(){
+						WorldpayCheckout.setupNewCardForm();
+					});
+				});
 			</script>
 		<?php
 	}

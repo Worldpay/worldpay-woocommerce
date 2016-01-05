@@ -83,6 +83,16 @@ class Worldpay_AdminForm
 				'title' => __( 'Test Client Key', 'woocommerce-gateway-worldpay' ),
 				'type' => 'text',
 				'default' => ''
+			),
+            'api_endpoint' => array(
+                'title' => __( 'API Endpoint', 'woocommerce-gateway-worldpay' ),
+                'type' => 'text',
+                'default' => ''
+            ),
+			'js_endpoint' => array(
+				'title' => __( 'JS Endpoint', 'woocommerce-gateway-worldpay' ),
+				'type' => 'text',
+				'default' => ''
 			)
 		);
 	}

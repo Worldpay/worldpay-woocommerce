@@ -11,6 +11,32 @@ WorldpayCheckout = function( $ ) {
             }
             return false;
         });
+
+        // Code for payment screen
+        if (document.getElementById('order_review')) {
+            $('#place_order').off().click(function(e){
+                if ($('#payment_method_WC_Gateway_Worldpay').is(':checked')) {
+                    e.preventDefault();
+                    if ($('#worldpay_use_saved_card_details').attr('checked')) {
+                        WorldpayCheckout.updateCVC();
+                    } else {
+                        Worldpay.submitTemplateForm();
+                    }
+                    return false;
+                }
+                else if ($('#payment_method_WC_Gateway_Worldpay_Paypal').is(':checked')) {
+                    e.preventDefault();
+                    WorldpayCheckout.createAPMForm('paypal');
+                    return false;
+                }
+                else if ($('#payment_method_WC_Gateway_Worldpay_Giropay').is(':checked')) {
+                    e.preventDefault();
+                    WorldpayCheckout.createAPMForm('giropay');
+                    return false;
+                }
+            });
+        }
+        
     };
     var temporarilyDetatchHandlers = function() {
         $(form).off( "checkout_place_order_WC_Gateway_Worldpay");
@@ -127,7 +153,10 @@ WorldpayCheckout = function( $ ) {
 
             Worldpay.apm.createToken(form, function(resp, message) {
                 if (resp != 200) {
-                    alert(message.error.message);
+                    if (message.error.message)
+                        alert(message.error.message);
+                    else
+                        alert(JSON.stringify(message));
                     return;
                 }
                 var token = message.token;
