@@ -120,6 +120,16 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				);
 			}
 
+			private function store_token() {
+				$currentUser = wp_get_current_user();
+				if($this->store_tokens
+						&& $_POST['worldpay_save_card_details']
+					&& !$_POST['worldpay_use_saved_card_details'])
+				{
+					update_user_meta( $currentUser->ID, 'worldpay_token', $_POST['worldpay_token'] );
+				}
+			}
+
 			private function get_stored_card_details()
 			{
 				if( ! $this->store_tokens ){
@@ -127,6 +137,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				}
 
 				$currentUser = wp_get_current_user();
+
 				return Worldpay_CardDetails::get_by_user($currentUser, $this->get_worldpay_client());
 			}
 
@@ -146,7 +157,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					wc_add_notice(__('Payment error:', 'Please login', 'error'));
 					return;
 				}
-				$currentUser = wp_get_current_user();
+				
 				$order = new WC_Order( $order_id );
 
 				if ( $_POST['worldpay_use_saved_card_details'] ) {
@@ -197,18 +208,14 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					$order->payment_complete($response['orderCode']);
 					$order->reduce_order_stock();
 					WC()->cart->empty_cart();
-					if($this->store_tokens
-						&& $_POST['worldpay_save_card_details']
-						&& !$_POST['worldpay_use_saved_card_details'])
-					{
-						update_user_meta( $currentUser->ID, 'worldpay_token', $_POST['worldpay_token'] );
-					}
+					$this->store_token();
 					return array(
 						'result' => 'success',
 						'redirect' => $this->get_return_url( $order )
 					);
 				}
 				else if ($response['is3DSOrder'] && $response['paymentStatus'] == Worldpay_Response_States::PRE_AUTHORIZED) {
+					$this->store_token();
 					if (!add_post_meta( $order_id, '_transaction_id', $response['orderCode'], true )) {
 						update_post_meta ( $order_id, '_transaction_id', $response['orderCode'] );
 					}
@@ -463,7 +470,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					wc_add_notice(__('Payment error:', 'Please login', 'error'));
 					return;
 				}
-				$currentUser = wp_get_current_user();
+
 				$order = new WC_Order( $order_id );
 				$token = $_POST['worldpay_token'];
 

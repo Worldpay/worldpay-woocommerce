@@ -131,12 +131,6 @@ class Worldpay_PaymentForm
 							$(checkbox).click(function()
 							{
 								newCardFormSections.toggle();
-								// if($(checkbox).attr('checked'))
-								// {
-								// 	WorldpayCheckout.setupReusableCardForm();
-								// } else {
-								// 	WorldpayCheckout.setupNewCardForm();
-								// }
 							});
 						}
 						WorldpayCheckout.setupNewCardForm();
