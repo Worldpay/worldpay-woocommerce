@@ -14,10 +14,11 @@ class Worldpay_PaymentForm
 		} else {
 			self::no_existing_details_script();
 		}
-		self::common_fields();
 		if ( $storeTokens ) {
 			self::store_tokens_options();
 		}
+		self::common_fields();
+
 	}
 
 	public static function payment_errors_section() {

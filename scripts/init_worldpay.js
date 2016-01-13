@@ -1,15 +1,36 @@
 WorldpayCheckout = function( $ ) {
     var submitFunction;
     var form;
+
+    var checkSaveCardOn = function() {
+        if ($('#worldpay_save_card_details').is(':checked')) {
+            Worldpay.reusable = true;
+        } else {
+            Worldpay.reusable = false;
+        } 
+        return Worldpay.reusable;
+    };
     var reattachHandlers = function() {
         $(form).off( "checkout_place_order_WC_Gateway_Worldpay");
         $(form).on( "checkout_place_order_WC_Gateway_Worldpay", function(){
             if ($('#worldpay_use_saved_card_details').attr('checked')) {
                 WorldpayCheckout.updateCVC();
             } else {
+                checkSaveCardOn();
                 Worldpay.submitTemplateForm();
             }
             return false;
+        });
+
+        $(form).off("change", '#worldpay_save_card_details');
+
+        $(form).on("change", '#worldpay_save_card_details', function(){
+            if ($(this).is(':checked')) {
+                Worldpay.reusable = true;
+            } else {
+                Worldpay.reusable = false;
+            }
+            WorldpayCheckout.setupNewCardForm();
         });
 
         // Code for payment screen
@@ -20,6 +41,7 @@ WorldpayCheckout = function( $ ) {
                     if ($('#worldpay_use_saved_card_details').attr('checked')) {
                         WorldpayCheckout.updateCVC();
                     } else {
+                        checkSaveCardOn();
                         Worldpay.submitTemplateForm();
                     }
                     return false;
@@ -68,13 +90,13 @@ WorldpayCheckout = function( $ ) {
     };
 
     Worldpay.setClientKey(WorldpayConfig.ClientKey);
-    Worldpay.reusable = true;
     return {
         setupNewCardForm: function(){
             form = document.getElementsByName('checkout')[0] || document.getElementById('order_review');
             Worldpay.useTemplateForm({
                 'clientKey':WorldpayConfig.ClientKey,
                 'form':form,
+                'reusable': checkSaveCardOn(),
                 'paymentSection':'worldpay-templateform',
                 'display':'inline',
                 'saveButton':false,

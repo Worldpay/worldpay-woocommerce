@@ -89,6 +89,9 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					$this->authorize_only = false;
 				}
 
+
+				$this->settlement_currency = $this->get_option('settlement_currency');
+
 				$this->client_key = $this->is_test
 					? $this->get_option('test_client_key')
 					: $this->get_option('client_key');
@@ -187,6 +190,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 					WC()->session->set( 'wp_sessionid' , $sessionId );
 					$this->get_worldpay_client()->setSessionId($sessionId);
 					$response = $this->get_worldpay_client()->createOrder(array(
+						'settlementCurrency' => $this->settlement_currency,
 						'authoriseOnly' => $this->authorize_only,
 						'token' => $token,
 						'orderDescription' => "Order: " . $order_id,
@@ -488,6 +492,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 				try {
 					$response = $this->get_worldpay_client()->createApmOrder(array(
+						'settlementCurrency' => $this->settlement_currency,
 						'token' => $token,
 						'orderDescription' => "Order: " . $order_id,
 						'amount' => $order->get_total() * 100,

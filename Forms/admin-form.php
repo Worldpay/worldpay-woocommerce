@@ -64,6 +64,12 @@ class Worldpay_AdminForm
 				'default' => 'no',
                 'description' => "Webhook URL: " . site_url() . "/?s=word&wc-api=WC_Gateway_Worldpay"
 			),
+			'settlement_currency' => array(
+                'title' => __( 'Settlement Currency', 'woocommerce-gateway-worldpay' ),
+                'type' => 'select',
+                'default' => 'GBP',
+                'options' => get_woocommerce_currencies()
+            ),
             'service_key' => array(
                 'title' => __( 'Service Key', 'woocommerce-gateway-worldpay' ),
                 'type' => 'text',
