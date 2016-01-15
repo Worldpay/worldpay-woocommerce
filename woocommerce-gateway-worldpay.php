@@ -3,7 +3,7 @@
  * Plugin Name: WooCommerce Worldpay Gateway - Worldpay Online Payments
  * Plugin URI:
  * Description: A plugin for integrating the worldpay payment gateway with Woo Commerce. Supports GBP, EUR and USD.
- * Version: 1.2.0
+ * Version: @@PLUGINVERSION
  * Author: Worldpay
  * Author URI:
  * Requires at least: 4.0
@@ -398,7 +398,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			protected function enqueue_checkout_scripts() {
 				wp_enqueue_script('worldpay_script', $this->js_endpoint, array('jquery', 'wc-checkout'));
 				wp_enqueue_script(
-					'worldpay_init', plugin_dir_url(__FILE__) . '/scripts/init_worldpay.js',
+					'worldpay_init', plugin_dir_url(__FILE__) . '/scripts/init_worldpay.js?version=' . '@@PLUGINVERSION',
 					array('jquery', 'wc-checkout', 'worldpay_script')
 				);
 				wp_localize_script('worldpay_init', 'WorldpayConfig', array('ClientKey' => $this->client_key));
@@ -408,7 +408,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				if ( ! isset($this->worldpay_client) ) {
 					$this->worldpay_client = new WordpressWorldpay( $this->service_key );
 					$this->worldpay_client->setEndpoint($this->api_endpoint);
-					$this->worldpay_client->setPluginData('WooCommerce', '1.2.0');
+					$this->worldpay_client->setPluginData('WooCommerce', '@@PLUGINVERSION');
 				}
 				return $this->worldpay_client;
 			}
