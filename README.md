@@ -8,7 +8,7 @@ Features
 Template form
 Card on file
 3DS
-Authroize only or capture option
+Authorize only or capture option
 PayPal
 Giropay
 Webhooks
