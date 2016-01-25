@@ -1,7 +1,7 @@
 Worldpay Online Payments WooCommerce
 ==================
 
-Worldpay Online Payments Magento WooCommerce - Version @@PLUGINVERSION
+Worldpay Online Payments Magento WooCommerce - Version 2.0.0
 
 Features
 ================

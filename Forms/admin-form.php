@@ -90,16 +90,8 @@ class Worldpay_AdminForm
 				'type' => 'text',
 				'default' => ''
 			),
-            'api_endpoint' => array(
-                'title' => __( 'API Endpoint', 'woocommerce-gateway-worldpay' ),
-                'type' => 'text',
-                'default' => ''
-            ),
-			'js_endpoint' => array(
-				'title' => __( 'JS Endpoint', 'woocommerce-gateway-worldpay' ),
-				'type' => 'text',
-				'default' => ''
-			)
+            
+			
 		);
 	}
 
