@@ -22,6 +22,7 @@ class Worldpay_CardDetails
 
 		$token = Worldpay_Token::get_by_user($user);
 
+
 		if ( $token == null ) {
 			return null;
 		}

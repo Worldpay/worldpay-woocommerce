@@ -1,15 +1,10 @@
 <?php
 
-if ( ! defined( 'ABSPATH' ) ) {
-    exit;
-}
-
 /**
- * PHP library version: v1.6 (wp_modified)
- * - modified for Wordpress
+ * PHP library version: 1.8.0
  */
 
-final class Worldpay
+class Worldpay
 {
 
     /**
@@ -20,12 +15,14 @@ final class Worldpay
     private $timeout = 65;
     private $disable_ssl = false;
     private $endpoint = 'https://api.worldpay.com/v1/';
-    private static $use_external_JSON = false;
-    private $order_types = ['ECOM', 'MOTO', 'RECURRING'];
+    private $order_types = array('ECOM', 'MOTO', 'RECURRING');
+    private $pluginName = false;
+    private $pluginVersion = false;
+    private $shopperSessionId = false;
 
     private static $errors = array(
         "ip"        => "Invalid parameters",
-        "http"      => "http error",
+        "cine"      => "php_curl was not found",
         "to"        => "Request timed out",
         "nf"        => "Not found",
         "apierror"  => "API Error",
@@ -35,6 +32,7 @@ final class Worldpay
         'verify'    => 'Worldpay not verifiying SSL connection',
         'orderInput'=> array(
             'token'             => 'No token found',
+            'orderCode'         => 'No order_code entered',
             'orderDescription'  => 'No order_description found',
             'amount'            => 'No amount found, or it is not a whole number',
             'currencyCode'      => 'No currency_code found',
@@ -72,6 +70,32 @@ final class Worldpay
         if ($timeout !== false) {
             $this->timeout = $timeout;
         }
+
+        if (!function_exists("curl_init")) {
+            self::onError("cine");
+        }
+
+        //
+    }
+
+    /**
+     * Set api endpoint
+     * @param string
+     * */
+    public function setEndpoint($endpoint)
+    {
+        $this->endpoint = $endpoint;
+    }
+
+    /**
+     * Set plugin data
+     * @param string
+     * @param string
+     * */
+    public function setPluginData($name, $version)
+    {
+        $this->pluginName = $name;
+        $this->pluginVersion = $version;
     }
 
     /**
@@ -82,7 +106,9 @@ final class Worldpay
     {
         $ipaddress = '';
 
-        if (isset($_SERVER['HTTP_CLIENT_IP'])) {
+        if (isset($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+            $ipaddress = $_SERVER['HTTP_CF_CONNECTING_IP'];
+        } elseif (isset($_SERVER['HTTP_CLIENT_IP'])) {
             $ipaddress = $_SERVER['HTTP_CLIENT_IP'];
         } elseif (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
             $ipaddress = $_SERVER['HTTP_X_FORWARDED_FOR'];
@@ -125,7 +151,7 @@ final class Worldpay
         if (!isset($order['orderDescription'])) {
             $errors[] = self::$errors['orderInput']['orderDescription'];
         }
-        if (!isset($order['amount']) || !($order['amount'] > 0) || $this->isFloat($order['amount'])) {
+        if (!isset($order['amount']) || ($order['amount'] > 0 && $this->isFloat($order['amount']))) {
             $errors[] = self::$errors['orderInput']['amount'];
         }
         if (!isset($order['currencyCode'])) {
@@ -153,51 +179,69 @@ final class Worldpay
      * */
     private function sendRequest($action, $json = false, $expectResponse = false, $method = 'POST')
     {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $this->endpoint.$action);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
+        curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
 
-        $arch = 'x86';
-        switch(PHP_INT_SIZE) {
-            case 4:
-                $arch = 'x86';
-                break;
-            case 8:
-                $arch = 'x64';
-                break;
-            default:
-                $arch = 'x64';
-        }
+        $arch = (bool)((1<<32)-1) ? 'x64' : 'x86';
 
         $clientUserAgent = 'os.name=' . php_uname('s') . ';os.version=' . php_uname('r') . ';os.arch=' .
-        $arch . ';lang.version='. phpversion() . ';lib.version=v1.6;' . 'api.version=v1;lang=php-woocommerce;owner=worldpay';
+        $arch . ';lang.version='. phpversion() . ';lib.version=1.8.0;' .
+        'api.version=v1;lang=php;owner=worldpay';
 
-        $ars = array();
+        if ($this->pluginName) {
+             $clientUserAgent .= ';plugin.name=' + $this->pluginName;
+        }
+        if ($this->pluginVersion) {
+             $clientUserAgent .= ';plugin.version=' + $this->pluginVersion;
+        }
 
-        $response = wp_remote_request( $this->endpoint.$action, array(
-            'method' => $method,
-            'timeout' => $this->timeout,
-            'redirection' => 5,
-            'httpversion' => '1.0',
-            'blocking' => true,
-            'headers' => array(
-                "Authorization"=> "$this->service_key",
-                "Content-Type"=> "application/json",
-                "X-wp-client-user-agent"=> "$clientUserAgent",
-                "Content-Length"=> strlen($json)
-            ),
-            'body' => $json,
-            'cookies' => array()
+        curl_setopt(
+            $ch,
+            CURLOPT_HTTPHEADER,
+            array(
+                "Authorization: $this->service_key",
+                "Content-Type: application/json",
+                "X-wp-client-user-agent: $clientUserAgent",
+                "Content-Length: " . strlen($json)
             )
         );
-
-        if ( is_wp_error( $response ) ) {
-            $errorResponse = $response->get_error_message();
-
-            self::onError('http', false, $response['response']['code'], null, $response['response']['message']);
-
-            $original_response = "";
-        } else {
-            $original_response = $response;
-            $response = self::handleResponse($response['body']);
+        // Disabling SSL used for localhost testing
+        if ($this->disable_ssl === true) {
+            if (substr($this->service_key, 0, 1) != 'T') {
+                self::onError('ssl');
+            }
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         }
+
+        $result = curl_exec($ch);
+        $info = curl_getinfo($ch);
+        $err = curl_error($ch);
+        $errno = curl_errno($ch);
+        curl_close($ch);
+
+        // Curl error
+        if ($result === false) {
+            if ($errno === 60) {
+                self::onError('sslerror', false, $errno, null, $err);
+            } elseif ($errno === 28) {
+                self::onError('timeouterror', false, $errno, null, $err);
+            } else {
+                self::onError('uanv', false, $errno, null, $err);
+            }
+        }
+
+        if (substr($result, -1) != '}') {
+            $result = substr($result, 0, -1);
+        }
+
+        // Decode JSON
+        $response = self::handleResponse($result);
 
         // Check JSON has decoded correctly
         if ($expectResponse && ($response === null || $response === false )) {
@@ -211,7 +255,7 @@ final class Worldpay
                 self::onError(
                     false,
                     $response["message"],
-                    $original_response['response']['code'],
+                    $info['http_code'],
                     $response['httpStatusCode'],
                     $response['description'],
                     $response['customCode']
@@ -219,14 +263,14 @@ final class Worldpay
 
             }
 
-        } elseif ($expectResponse && $original_response['response']['code'] != 200) {
+        } elseif ($expectResponse && $info['http_code'] != 200) {
             // If we expect a result and we have an error
             self::onError('uanv', self::$errors['json'], 503);
 
         } elseif (!$expectResponse) {
 
-            if ($original_response['response']['code'] != 200) {
-                self::onError('apierror', $result, $original_response['response']['code']);
+            if ($info['http_code'] != 200) {
+                self::onError('apierror', $result, $info['http_code']);
             } else {
                 $response = true;
             }
@@ -237,22 +281,83 @@ final class Worldpay
 
 
     /**
+     * Create Worldpay APM order
+     * @param array $order
+     * @return array Worldpay order response
+     * */
+    public function createApmOrder($order = array())
+    {
+
+        $this->checkOrderInput($order);
+
+        $defaults = array(
+            'deliveryAddress' => null,
+            'billingAddress' => null,
+            'successUrl' => null,
+            'pendingUrl' => null,
+            'failureUrl' => null,
+            'cancelUrl' => null,
+            'shopperEmailAddress' => null
+        );
+
+        $order = array_merge($defaults, $order);
+
+        $obj = array(
+            "token" => $order['token'],
+            "orderDescription" => $order['orderDescription'],
+            "amount" => $order['amount'],
+            "currencyCode" => $order['currencyCode'],
+            "name" => $order['name'],
+            "shopperEmailAddress" => $order['shopperEmailAddress'],
+            "billingAddress" => $order['billingAddress'],
+            "deliveryAddress" => $order['deliveryAddress'],
+            "customerOrderCode" => $order['customerOrderCode'],
+            "successUrl" => $order['successUrl'],
+            "pendingUrl" => $order['pendingUrl'],
+            "failureUrl" => $order['failureUrl'],
+            "cancelUrl" => $order['cancelUrl']
+        );
+        
+        if (isset($order['statementNarrative'])) {
+            $obj['statementNarrative'] = $order['statementNarrative'];
+        }
+        if (!empty($order['settlementCurrency'])) {
+            $obj['settlementCurrency'] = $order['settlementCurrency'];
+        }
+        if (!empty($order['customerIdentifiers'])) {
+            $obj['customerIdentifiers'] = $order['customerIdentifiers'];
+        }
+
+        $json = json_encode($obj);
+
+        $response = $this->sendRequest('orders', $json, true);
+
+        if (isset($response["orderCode"])) {
+            //success
+            return $response;
+        } else {
+            self::onError("apierror");
+        }
+    }
+
+
+    /**
      * Create Worldpay order
      * @param array $order
      * @return array Worldpay order response
      * */
     public function createOrder($order = array())
     {
-
         $this->checkOrderInput($order);
 
         $defaults = array(
             'orderType' => 'ECOM',
-            'customerIdentifiers' => null,
             'billingAddress' => null,
+            'deliveryAddress' => null,
             'is3DSOrder' => false,
             'authoriseOnly' => false,
-            'redirectURL' => false
+            'redirectURL' => false,
+            'shopperEmailAddress' => null
         );
 
         $order = array_merge($defaults, $order);
@@ -264,23 +369,32 @@ final class Worldpay
             "is3DSOrder" => ($order['is3DSOrder']) ? true : false,
             "currencyCode" => $order['currencyCode'],
             "name" => $order['name'],
+            "shopperEmailAddress" => $order['shopperEmailAddress'],
             "orderType" => (in_array($order['orderType'], $this->order_types)) ? $order['orderType'] : 'ECOM',
             "authorizeOnly" => ($order['authoriseOnly']) ? true : false,
             "billingAddress" => $order['billingAddress'],
-            "customerOrderCode" => $order['customerOrderCode'],
-            "customerIdentifiers" => $order['customerIdentifiers']
+            "deliveryAddress" => $order['deliveryAddress'],
+            "customerOrderCode" => $order['customerOrderCode']
         );
 
         if ($obj['is3DSOrder']) {
-            $_SESSION['worldpay_sessionid'] = uniqid();
             $obj['shopperIpAddress'] = $this->getClientIp();
-            $obj['shopperSessionId'] = $_SESSION['worldpay_sessionid'];
+            $obj['shopperSessionId'] = $this->getSessionId();
             $obj['shopperUserAgent'] = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
-            $obj['shopperAcceptHeader'] = isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : '';
+            $obj['shopperAcceptHeader'] = $this->getShopperAcceptHeader();
+        }
+
+        if (isset($order['statementNarrative'])) {
+            $obj['statementNarrative'] = $order['statementNarrative'];
+        }
+        if (!empty($order['settlementCurrency'])) {
+            $obj['settlementCurrency'] = $order['settlementCurrency'];
+        }
+        if (!empty($order['customerIdentifiers'])) {
+            $obj['customerIdentifiers'] = $order['customerIdentifiers'];
         }
 
         $json = json_encode($obj);
-
         $response = $this->sendRequest('orders', $json, true);
 
         if (isset($response["orderCode"])) {
@@ -300,8 +414,8 @@ final class Worldpay
     {
         $json = json_encode(array(
             "threeDSResponseCode" => $responseCode,
-            "shopperSessionId" => $_SESSION['worldpay_sessionid'],
-            "shopperAcceptHeader" => $_SERVER['HTTP_ACCEPT'],
+            "shopperSessionId" => $this->getSessionId(),
+            "shopperAcceptHeader" => $this->getShopperAcceptHeader(),
             "shopperUserAgent" => $_SERVER['HTTP_USER_AGENT'],
             "shopperIpAddress" => $this->getClientIp()
         ));
@@ -362,6 +476,24 @@ final class Worldpay
     }
 
     /**
+     * Get a Worldpay order
+     * @param string $orderCode
+     * @return array Worldpay order response
+     * */
+    public function getOrder($orderCode = false)
+    {
+        if (empty($orderCode) || !is_string($orderCode)) {
+            self::onError('ip', self::$errors['orderInput']['orderCode']);
+        }
+        $response = $this->sendRequest('orders/' . $orderCode, false, true, 'GET');
+
+        if (!isset($response["orderCode"])) {
+            self::onError("apierror");
+        }
+        return $response;
+    }
+
+    /**
      * Get card details from Worldpay token
      * @param string $token
      * @return array card details
@@ -400,6 +532,40 @@ final class Worldpay
     }
 
     /**
+     * get sessionId for 3ds
+     * @return string $shopperSessionId
+     * */
+    public function getSessionId()
+    {
+        if ($this->shopperSessionId) {
+            return $this->shopperSessionId;
+        } else {
+            if (!$_SESSION['worldpay_sessionid']) {
+               $_SESSION['worldpay_sessionid'] = uniqid();
+            }
+            return $_SESSION['worldpay_sessionid'];
+        }
+    }
+
+    /**
+     * set sessionId for 3ds
+     * @param string $timeout
+     * */
+    public function setSessionId($shopperSessionId)
+    {
+        $this->shopperSessionId = $shopperSessionId;
+    }
+
+    /**
+     * get shopper accept header for 3ds
+     * @return string $acceptHeader
+     * */
+    public function getShopperAcceptHeader()
+    {
+       return isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : '*/*';
+    }
+
+    /**
      * Handle errors
      * @param string-error_key $error
      * @param string $message
@@ -424,31 +590,14 @@ final class Worldpay
                 $error_message .=  ' - '. $message;
             }
         }
-
-        if (version_compare(phpversion(), '5.3.0', '>=')) {
-            throw new WorldpayException(
-                $error_message,
-                $code,
-                null,
-                $httpStatusCode,
-                $description,
-                $customCode
-            );
-        } else {
-            throw new Exception(
-                $error_message,
-                $code
-            );
-        }
-    }
-
-    /**
-     * Use external library to do JSON decode
-     * @param bool $external
-     * */
-    public function setExternalJSONDecode($external = false)
-    {
-        self::$use_external_JSON = $external;
+        throw new WorldpayException(
+            $error_message,
+            $code,
+            null,
+            $httpStatusCode,
+            $description,
+            $customCode
+        );
     }
 
     /**
@@ -457,15 +606,7 @@ final class Worldpay
      * */
     public static function handleResponse($response)
     {
-        // Backward compatiblity for JSON
-        if (!function_exists('json_encode') || !function_exists('json_decode') || self::$use_external_JSON) {
-            require_once('JSON.php');
-        }
-        if (self::$use_external_JSON) {
-            return json_decode_external($response, true);
-        } else {
-            return json_decode($response, true);
-        }
+        return json_decode($response, true);
     }
 }
 

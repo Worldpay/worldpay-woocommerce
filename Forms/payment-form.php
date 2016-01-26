@@ -14,10 +14,11 @@ class Worldpay_PaymentForm
 		} else {
 			self::no_existing_details_script();
 		}
-		self::common_fields();
 		if ( $storeTokens ) {
 			self::store_tokens_options();
 		}
+		self::common_fields();
+
 	}
 
 	public static function payment_errors_section() {
@@ -28,16 +29,27 @@ class Worldpay_PaymentForm
 
 	public static function existing_details_fields( Worldpay_CardDetails $card_details ) {
 		?>
-			<p class="form-row form-row-first">
+			<p class="form-row">
 				<label for="worldpay_saved_card">
 					<strong>
 						Saved card details:
 					</strong>
 				</label>
 				<input id="worldpay_saved_card" type="text" class="input-text" disabled autocomplete="off" value="<?php echo $card_details->masked_card_number ?>"/>
+
 				<input id="worldpay_token" type="hidden" data-worldpay="token" value="<?php echo $card_details->token ?>"/>
 			</p>
-			<p class="form-row form-row-last">
+
+			<p class="form-row">
+				<label for="worldpay_saved_card">
+					<strong>
+						CVC:
+					</strong>
+				</label>
+				<input style="width:150px" id="worldpay_cvc" type="text" data-worldpay="cvc" value=""/>
+			</p>
+
+			<p class="form-row">
 				<label for="worldpay_use_saved_card_details">
 					Use saved card details?
 				</label>
@@ -47,41 +59,15 @@ class Worldpay_PaymentForm
 					New card details:
 				</strong>
 			</p>
+
+		
+
 		<?php
 	}
 
 	public static function common_fields() {
 		?>
-			<p class="form-row form-row-wide worldpay_new_card_fields validate-required">
-				<label for="worldpay_name">
-					Name on Card
-					<abbr class="required" title="required">*</abbr>
-				</label>
-				<input id="worldpay_name" data-worldpay="name" name="name" type="text" placeholder="Name on Card" class="input-text" autocomplete="off"
-			</p>
-			<p class="form-row form-row-wide worldpay_new_card_fields validate-required">
-				<label for="worldpay_card_number">
-					Card Number
-					<abbr class="required" title="required">*</abbr>
-				</label>
-				<input id="worldpay_card_number" data-worldpay="number" size="20" type="text" placeholder="Card Number" class="input-text" autocomplete="off"/>
-			</p>
-			<p class="form-row form-row-wide validate-required">
-				<label for="worldpay_cvc">
-					CVC
-					<abbr class="required" title="required">*</abbr>
-				</label>
-				<span class="help">The 3 or 4 numbers on the back of your card</span>
-				<input id="worldpay_cvc" data-worldpay="cvc" size="4" type="text" placeholder="CVC" class="input-text" autocomplete="off"/>
-			</p>
-			<p class="form-row form-row-wide worldpay_new_card_fields validate-required">
-				<label for="worldpay_expiration_month">
-					Expiration Date
-					<abbr class="required" title="required">*</abbr>
-				</label>
-				<?php self::month_select() ?>
-				<?php self::year_select() ?>
-			</p>
+			<div class="worldpay_new_card_fields" id="worldpay-templateform">Loading..</div>
 		<?php
 	}
 
@@ -124,7 +110,11 @@ class Worldpay_PaymentForm
 	public static function no_existing_details_script() {
 		?>
 			<script type="text/javascript">
-				WorldpayCheckout.setupNewCardForm();
+				jQuery(function($){
+					$(document).ready(function(){
+						WorldpayCheckout.setupNewCardForm();
+					});
+				});
 			</script>
 		<?php
 	}
@@ -142,17 +132,50 @@ class Worldpay_PaymentForm
 							$(checkbox).click(function()
 							{
 								newCardFormSections.toggle();
-								if($(checkbox).attr('checked'))
-								{
-									WorldpayCheckout.setupReusableCardForm();
-								} else {
-									WorldpayCheckout.setupNewCardForm();
-								}
 							});
 						}
-						WorldpayCheckout.setupReusableCardForm();
+						WorldpayCheckout.setupNewCardForm();
 					});
 				});
+			</script>
+		<?php
+	}
+
+	public static function three_ds_redirect($response, $order) {
+		?>
+		<form id="submitForm" method="post" action="<?php echo $response['redirectURL'] ?>">
+			<input type="hidden" name="PaReq" value="<?php echo $response['oneTime3DsToken']; ?>"/>
+			<input type="hidden" id="termUrl" name="TermUrl" value="<?php echo $order->get_checkout_order_received_url( ); ?>"/>
+			<script>
+				document.getElementById('submitForm').submit();
+			</script>
+		</form>
+		<?php
+	}
+
+	public static function render_paypal_form() {
+		?>
+			<?php echo __('You will be redirected to PayPal to complete your transaction.') ?>
+			<script type="text/javascript">
+				WorldpayCheckout.setupPayPalForm();
+			</script>
+		<?php
+	}
+
+	public static function render_giropay_form() {
+		?>
+			<?php echo __('You will be redirected to Giropay to complete your transaction.') ?>
+
+			<p class="form-row form-row-first">
+				<label for="worldpay_swift_code">
+					<strong>
+						Swift code:
+					</strong>
+				</label>
+				<input id="worldpay_swift_code" type="text" class="input-text" autocomplete="off" value=""/>
+			</p>
+			<script type="text/javascript">
+				WorldpayCheckout.setupGiropayForm();
 			</script>
 		<?php
 	}
